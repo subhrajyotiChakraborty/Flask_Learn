@@ -1,4 +1,3 @@
-import sqlite3
 from flask_restful import Resource, reqparse
 from flask_jwt import jwt_required
 from models.item import ItemModel
@@ -30,21 +29,17 @@ class Item(Resource):
             new_item = ItemModel(name, data["price"])
 
             try:
-                new_item.insert_item()
+                new_item.save_item_to_db()
             except:
                 return {"message": "An error occurred while inserting the item."}, 500
 
             return new_item.json(), 201
 
     def delete(self, name):
-        connection = sqlite3.connect("data.db")
-        cursor = connection.cursor()
+        item = ItemModel.find_item_by_name(name)
 
-        query = "DELETE FROM items WHERE name=?"
-        cursor.execute(query, (name,))
-
-        connection.commit()
-        connection.close()
+        if item:
+            item.delete_item()
 
         return {"message": "Item deleted"}
 
@@ -52,34 +47,21 @@ class Item(Resource):
         data = Item.parser.parse_args()
 
         item = ItemModel.find_item_by_name(name)
-        updated_item = ItemModel(name, data["price"])
 
         if item:
-            try:
-                updated_item.update_item()
-            except:
-                return {"message": "An error occurred while updating the item."}, 500
+            item.price = data["price"]
         else:
-            try:
-                updated_item.insert_item()
-            except:
-                return {"message": "An error occurred while inserting the item."}, 500
+            item = ItemModel(name, data["price"])
 
-        return updated_item.json()
+        try:
+            item.save_item_to_db()
+        except:
+            return {"message": "An error occurred while inserting the item."}, 500
+
+        return item.json()
 
 
 class ItemList(Resource):
     def get(self):
-        connection = sqlite3.connect("data.db")
-        cursor = connection.cursor()
-
-        query = "SELECT * FROM items"
-        result = cursor.execute(query)
-
-        items = []
-        for row in result:
-            items.append({"name": row[0], "price": row[1]})
-
-        connection.close()
-
-        return {"items": items}
+        # return {"items": [item.json() for item in ItemModel.query.all()]}
+        return {"items": list(map(lambda x: x.json(), ItemModel.query.all()))}

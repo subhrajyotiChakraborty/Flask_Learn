@@ -1,4 +1,3 @@
-import sqlite3
 from flask_restful import Resource, reqparse
 from models.user import UserModel
 
@@ -16,13 +15,11 @@ class UserRegister(Resource):
         if UserModel.find_by_usersname(data["username"]):
             return {"message": f"User with {data['username']} already exists"}, 400
 
-        connection = sqlite3.connect("data.db")
-        cursor = connection.cursor()
-
-        query = "INSERT INTO users VALUES (NULL, ?, ?)"
-        cursor.execute(query, (data["username"], data["password"]))
-
-        connection.commit()
-        connection.close()
+        try:
+            # user = UserModel(data["username"], data["password"]) we can use **data
+            user = UserModel(**data)
+            user.save_user_to_db()
+        except:
+            return {"message": "An error occurred while saveing the user."}, 500
 
         return {"message": "User created"}, 201

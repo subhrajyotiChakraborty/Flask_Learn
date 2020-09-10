@@ -12,6 +12,11 @@ class Item(Resource):
                         required=True,
                         help="This field is required"
                         )
+    parser.add_argument("store_id",
+                        type=int,
+                        required=True,
+                        help="Item needs a store id"
+                        )
 
     @jwt_required()
     def get(self, name):
@@ -26,8 +31,8 @@ class Item(Resource):
             return {"message": f"Item with name {name} already exists"}, 400
         else:
             data = Item.parser.parse_args()
-            new_item = ItemModel(name, data["price"])
-
+            # new_item = ItemModel(name, data["price"], data["store_id"]) we can use **data
+            new_item = ItemModel(name, **data)
             try:
                 new_item.save_item_to_db()
             except:
@@ -51,8 +56,8 @@ class Item(Resource):
         if item:
             item.price = data["price"]
         else:
-            item = ItemModel(name, data["price"])
-
+            # item = ItemModel(name, data["price"], data["store_id"]) we can use **data
+            item = ItemModel(name, **data)
         try:
             item.save_item_to_db()
         except:
